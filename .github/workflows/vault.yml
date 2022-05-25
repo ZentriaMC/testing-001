@@ -76,7 +76,7 @@ jobs:
             local url="${1:-${VAULT_ADDR}}"
             local jwt="${2}"
             local role="${3:-}"
-            local namespace="${4:-${VAULT_NAMESPACE}}"
+            local namespace="${4:-${VAULT_NAMESPACE:-}}"
             local mountpoint="${5:-jwt}"
 
             #gh_debug "[vault] Logging in via jwt (mount '${mountpoint}')"
