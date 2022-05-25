@@ -28,11 +28,11 @@ jobs:
             local url="${ACTIONS_ID_TOKEN_REQUEST_URL}"
             local bearer="${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"
 
-
             local audience="${1:-}"
             local curl_args=(
-              -H "User-Agent: actions/oidc-client"
               -H @<(echo "Authorization: Bearer ${bearer}")
+              -H "User-Agent: actions/oidc-client"
+              -H "Accept: application/json"
             )
 
             [ -n "${audience}" ] && curl_args+=(-d "audience=${audience}")
