@@ -106,7 +106,7 @@ jobs:
           set -x
 
           gh_token="$(get_gh_id_token)"
-          vault_login_jwt "${{ secrets.VAULT_ADDR }}" "${gh_token}" "" "" "jwt-github"
+          vault_login_jwt "${{ secrets.VAULT_ADDR }}" "${gh_token}" "testing-001" "" "jwt-github"
 
       - id: "install-packages"
         name: "Install additional packages"
