@@ -23,6 +23,7 @@ jobs:
         #  jwtTtl: 360
         run: |
           set -euo pipefail
+          __stdout=/proc/$$/fd/1
 
           get_gh_id_token () {
             local url="${ACTIONS_ID_TOKEN_REQUEST_URL}"
@@ -39,13 +40,15 @@ jobs:
             [ -n "${audience}" ] && curl_args+=(-d "audience=${audience}")
             response="$(curl -d "{}" -v "${curl_args[@]}" "${url}")"
 
-            echo "${response}"
+            jq -r '.value' <<< "${response}" || {
+              echo >"${__stdout}" "Failed to get ID token: ${response}"
+              return 1
+            }
           }
 
           set -x
 
-          #gh_token="$(get_gh_id_token)"
-          get_gh_id_token
+          gh_token="$(get_gh_id_token)"
           echo "token acquired, but vault login is not implemented"
           exit 1
 
