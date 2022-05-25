@@ -13,14 +13,38 @@ jobs:
     steps:
       - id: "vault-login"
         name: "Login into Vault"
-        uses: hashicorp/vault-action@v2.4.1
-        with:
-          exportToken: true
-          url: "${{ secrets.VAULT_ADDR }}"
-          role: "testing-001"
-          method: "jwt"
-          path: "jwt-github"
-          jwtTtl: 360
+        #uses: hashicorp/vault-action@v2.4.1
+        #with:
+        #  exportToken: true
+        #  url: "${{ secrets.VAULT_ADDR }}"
+        #  role: "testing-001"
+        #  method: "jwt"
+        #  path: "jwt-github"
+        #  jwtTtl: 360
+        run: |
+          set -euo pipefail
+
+          get_gh_id_token () {
+            local url="${ACTIONS_ID_TOKEN_REQUEST_URL}"
+            local bearer="${ACTIONS_ID_TOKEN_REQUEST_TOKEN}"
+
+
+            local audience="${1:-}"
+            local curl_args=(
+              -H "User-Agent: actions/oidc-client"
+              -H @<(echo "Authorization: Bearer ${bearer}")
+            )
+
+            [ -n "${audience}" ] && curl_args+=(-d "audience=${audience}")
+            response="$(curl -G -s "${curl_args[@]}" "${url}")"
+
+            echo "${response}"
+          }
+
+          #gh_token="$(get_gh_id_token)"
+          get_gh_id_token
+          echo "token acquired, but vault login is not implemented"
+          exit 1
 
       - id: "install-packages"
         name: "Install additional packages"
