@@ -24,6 +24,33 @@ jobs:
         run: |
           set -euo pipefail
           __stdout=/proc/$$/fd/1
+          gh_debug () {
+              printf >"${__stdout}" '::debug::%s\n' "${@}"
+          }
+
+          mask () {
+              local value="${1}"
+              printf >"${__stdout}" '::add-mask::%s\n' "${value}"
+          }
+
+          mask_var () {
+              local v="${1}"
+
+              gh_debug "Masking variable '${v}'"
+              mask "${!v}"
+          }
+
+          propagate () {
+              local v="${1}"
+              gh_debug "Exporting variable via env '${v}'"
+              printf '%s=%s\n' "${v}" "${!v}" >> "${GITHUB_ENV}"
+          }
+
+          propagate_mask () {
+              local v="${1}";
+              propagate "${1}"
+              mask_var "${1}"
+          }
 
           get_gh_id_token () {
             local url="${ACTIONS_ID_TOKEN_REQUEST_URL}"
@@ -37,8 +64,8 @@ jobs:
               -H "Content-Type: application/json"
             )
 
-            [ -n "${audience}" ] && curl_args+=(-d "audience=${audience}")
-            response="$(curl -d "{}" -v "${curl_args[@]}" "${url}")"
+            [ -n "${audience}" ] && curl_args+=(--data-urlencode "audience=${audience}")
+            response="$(curl -v -X POST -d "{}" "${curl_args[@]}" "${url}")"
 
             jq -r '.value' <<< "${response}" || {
               echo >"${__stdout}" "Failed to get ID token: ${response}"
@@ -46,11 +73,41 @@ jobs:
             }
           }
 
+          vault_login_jwt () {
+            local url="${1:-${VAULT_ADDR}}"
+            local jwt="${2}"
+            local role="${3:-}"
+            local namespace="${4:-${VAULT_NAMESPACE}}"
+            local mountpoint="${5:-jwt}"
+
+            #gh_debug "[vault] Logging in via jwt (mount '${mountpoint}')"
+            login_url="${url}/v1/${namespace:-}${namespace:+/}auth/${mountpoint}/login"
+            payload="$(jq --rawfile jwt <(echo -n "${jwt}") --rawfile role <(echo -n "${role}") '{jwt: $jwt, role: $role} | with_entries(select(.value != ""))' <<< "{}")"
+            response="$(curl -s -d @- "${login_url}" <<< "${payload}" | jq -cr)"
+            mask_var response
+
+            #_vault_check_error <<< "${response}"
+
+            token="$(jq -r '.auth.client_token' <<< "${response}")"
+            if [ -z "${token}" ]; then
+                fail "Failed to obtain Vault token"
+            fi
+
+            VAULT_TOKEN="${token}"
+            VAULT_ADDR="${url}"
+            propagate_mask VAULT_TOKEN
+            propagate_mask VAULT_ADDR
+
+            if [ -n "${namespace}" ]; then
+                VAULT_NAMESPACE="${namespace}"
+                propagate_mask VAULT_NAMESPACE
+            fi
+          }
+
           set -x
 
           gh_token="$(get_gh_id_token)"
-          echo "token acquired, but vault login is not implemented"
-          exit 1
+          vault_login_jwt "" "${gh_token}" "" "" "jwt-github"
 
       - id: "install-packages"
         name: "Install additional packages"
