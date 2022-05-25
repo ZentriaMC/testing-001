@@ -41,6 +41,8 @@ jobs:
             echo "${response}"
           }
 
+          set -x
+
           #gh_token="$(get_gh_id_token)"
           get_gh_id_token
           echo "token acquired, but vault login is not implemented"
