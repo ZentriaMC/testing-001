@@ -65,11 +65,10 @@ jobs:
             )
 
             [ -n "${audience}" ] && curl_args+=(--data-urlencode "audience=${audience}")
-            response="$(curl -v -X POST -d "{}" "${curl_args[@]}" "${url}")"
+            response="$(curl -X POST -d "{}" "${curl_args[@]}" "${url}")"
 
             jq -r '.value' <<< "${response}" || {
-              echo >"${__stdout}" "Failed to get ID token: ${response}"
-              return 1
+              fail "Failed to obtain ID token: ${response}"
             }
           }
 
@@ -82,7 +81,7 @@ jobs:
 
             #gh_debug "[vault] Logging in via jwt (mount '${mountpoint}')"
             login_url="${url}/v1/${namespace:-}${namespace:+/}auth/${mountpoint}/login"
-            payload="$(jq --rawfile jwt <(echo -n "${jwt}") --rawfile role <(echo -n "${role}") '{jwt: $jwt, role: $role} | with_entries(select(.value != ""))' <<< "{}")"
+            payload="$(jq -cr --rawfile jwt <(echo -n "${jwt}") --rawfile role <(echo -n "${role}") '{jwt: $jwt, role: $role} | with_entries(select(.value != ""))' <<< "{}")"
             response="$(curl -s -d @- "${login_url}" <<< "${payload}" | jq -cr)"
             mask_var response
 
@@ -107,7 +106,7 @@ jobs:
           set -x
 
           gh_token="$(get_gh_id_token)"
-          vault_login_jwt "${{ secrets.VAULT_ADDR }}" "${gh_token}" "" "admin" "jwt-github"
+          vault_login_jwt "${{ secrets.VAULT_ADDR }}" "${gh_token}" "" "" "jwt-github"
 
       - id: "install-packages"
         name: "Install additional packages"
