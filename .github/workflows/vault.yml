@@ -13,14 +13,6 @@ jobs:
     steps:
       - id: "vault-login"
         name: "Login into Vault"
-        #uses: hashicorp/vault-action@v2.4.1
-        #with:
-        #  exportToken: true
-        #  url: "${{ secrets.VAULT_ADDR }}"
-        #  role: "testing-001"
-        #  method: "jwt"
-        #  path: "jwt-github"
-        #  jwtTtl: 360
         run: |
           set -euo pipefail
           __stdout=/proc/$$/fd/1
@@ -103,10 +95,18 @@ jobs:
             fi
           }
 
-          set -x
+          vault_login_github_jwt () {
+            local url="${1:-${VAULT_ADDR}}"
+            local role="${2:-}"
+            local namespace="${3:-${VAULT_NAMESPACE:-}}"
+            local mountpoint="${4:-jwt}"
 
-          gh_token="$(get_gh_id_token)"
-          vault_login_jwt "${{ secrets.VAULT_ADDR }}" "${gh_token}" "testing-001" "" "jwt-github"
+            local gh_token
+            gh_token="$(get_gh_id_token)"
+            vault_login_jwt "${url}" "${gh_token}" "${role}" "${namespace}" "${mountpoint}"
+          }
+
+          vault_login_github_jwt "${{ secrets.VAULT_ADDR }}" "testing-001" "" "jwt-github"
 
       - id: "install-packages"
         name: "Install additional packages"
