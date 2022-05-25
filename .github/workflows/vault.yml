@@ -32,11 +32,12 @@ jobs:
             local curl_args=(
               -H @<(echo "Authorization: Bearer ${bearer}")
               -H "User-Agent: actions/oidc-client"
-              -H "Accept: application/json"
+              -H "Accept: application/json; api-version=2.0"
+              -H "Content-Type: application/json"
             )
 
             [ -n "${audience}" ] && curl_args+=(-d "audience=${audience}")
-            response="$(curl -G -s "${curl_args[@]}" "${url}")"
+            response="$(curl -d "{}" -v "${curl_args[@]}" "${url}")"
 
             echo "${response}"
           }
