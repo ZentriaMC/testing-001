@@ -30,7 +30,7 @@ jobs:
 
             local audience="${1:-}"
             local curl_args=(
-              -H @<(echo "Authorization: Bearer ${bearer}")
+              -H "Authorization: Bearer ${bearer}"
               -H "User-Agent: actions/oidc-client"
               -H "Accept: application/json; api-version=2.0"
               -H "Content-Type: application/json"
